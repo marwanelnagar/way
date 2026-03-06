@@ -3,191 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Two Way - Voice Chat Rooms</title>
-    <!-- PeerJS Library -->
+    <title>Talk2Me | مروان هاني</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
         body {
-            background-color: #0f172a;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #050505;
+            color: #e2e8f0;
+            font-family: 'Cairo', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .pulse-green {
-            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-            animation: pulse 2s infinite;
+        .main-card {
+            background: linear-gradient(145deg, #111, #1a1a1a);
+            border: 1px solid #333;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        .btn-primary {
+            background: linear-gradient(to right, #22c55e, #16a34a);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(34, 197, 94, 0.4);
+        }
+        .room-input {
+            background: #000;
+            border: 2px solid #333;
+            transition: border-color 0.3s ease;
+        }
+        .room-input:focus {
+            border-color: #22c55e;
+            outline: none;
+        }
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0px rgba(34, 197, 94, 0.4); }
+            100% { box-shadow: 0 0 0 20px rgba(34, 197, 94, 0); }
         }
         .hidden { display: none; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body>
 
-    <div class="bg-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl border border-slate-700 text-center">
-        <!-- Logo Area -->
-        <div id="statusIndicator" class="w-24 h-24 bg-black border-8 border-slate-600 rounded-full mx-auto mb-6 flex items-center justify-center text-[10px] font-bold tracking-widest uppercase transition-all duration-500">
-            Two Way
-        </div>
-
-        <h1 class="text-2xl font-bold mb-2">غرف التواصل الصوتي</h1>
-        <p class="text-slate-400 text-sm mb-8">تواصل مع أي شخص في العالم بخصوصية تامة</p>
-
-        <!-- Main Menu -->
-        <div id="mainMenu" class="space-y-4">
-            <button id="showCreateBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
-                <span>➕</span> إنشاء غرفة جديدة
-            </button>
-            <button id="showJoinBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
-                <span>🔑</span> انضمام لغرفة موجودة
-            </button>
-        </div>
-
-        <!-- Create Room UI -->
-        <div id="createSection" class="hidden space-y-4">
-            <div class="bg-slate-900 p-4 rounded-2xl border border-blue-500/30">
-                <p class="text-xs text-slate-500 mb-2">معرف الغرفة الخاص بك (أرسله لصديقك):</p>
-                <p id="generatedRoomId" class="text-xl font-mono text-blue-400 font-bold tracking-wider">جاري التوليد...</p>
+    <div class="main-card w-full max-w-sm rounded-[2rem] p-8 relative">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div id="statusBall" class="w-20 h-20 bg-zinc-900 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-zinc-800 transition-all duration-500">
+                <i data-lucide="radio" id="mainIcon" class="w-8 h-8 text-zinc-600"></i>
             </div>
-            <p id="createStatus" class="text-sm text-yellow-500 animate-pulse">في انتظار انضمام الطرف الآخر...</p>
-            <button onclick="location.reload()" class="text-slate-400 text-sm underline">إلغاء والعودة</button>
+            <h1 class="text-2xl font-bold tracking-tight text-white">Talk2Me</h1>
+            <p id="statusText" class="text-zinc-500 text-xs mt-1">أدخل اسم الغرفة للتحدث</p>
         </div>
 
-        <!-- Join Room UI -->
-        <div id="joinSection" class="hidden space-y-4">
-            <input type="text" id="targetRoomId" placeholder="أدخل معرف الغرفة (ID)" 
-                class="w-full bg-slate-900 border border-slate-700 rounded-xl py-4 px-4 text-white text-center focus:outline-none focus:border-green-500 transition-all font-mono">
-            <button id="startJoinBtn" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95">
-                بدء الاتصال الآن
+        <!-- Start Section -->
+        <div id="setupView" class="space-y-4">
+            <input type="text" id="roomInput" placeholder="اكتب اسم الغرفة (مثلاً: marwan)" 
+                class="room-input w-full py-4 px-6 rounded-2xl text-center text-lg font-bold text-white placeholder-zinc-700">
+            
+            <button id="connectBtn" class="btn-primary w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2">
+                <i data-lucide="phone" class="w-5 h-5"></i>
+                دخول الغرفة
             </button>
-            <button onclick="location.reload()" class="text-slate-400 text-sm underline">عودة</button>
         </div>
 
-        <!-- Call Active UI -->
-        <div id="activeCallSection" class="hidden space-y-6">
-            <div class="bg-green-500/10 border border-green-500/50 p-4 rounded-2xl">
-                <p id="callMessage" class="text-green-400 font-bold">متصل الآن</p>
+        <!-- In-Call Section -->
+        <div id="callView" class="hidden text-center space-y-6">
+            <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest">متصل الآن بالغرفة</p>
+                <p id="activeRoomLabel" class="text-xl font-bold text-green-500">---</p>
             </div>
-            <button id="hangupBtn" class="bg-red-500 hover:bg-red-400 w-20 h-20 rounded-full text-white shadow-lg transition-all active:scale-90 flex items-center justify-center mx-auto">
-                <span class="text-2xl">📞</span>
-            </button>
+
+            <div class="flex justify-center items-center gap-4">
+                <button id="muteBtn" class="w-14 h-14 bg-zinc-800 rounded-full flex items-center justify-center hover:bg-zinc-700 transition-all">
+                    <i data-lucide="mic" id="muteIcon" class="w-6 h-6"></i>
+                </button>
+                <button id="hangupBtn" class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-500 transition-all shadow-lg shadow-red-900/20">
+                    <i data-lucide="phone-off" class="w-7 h-7 text-white"></i>
+                </button>
+            </div>
         </div>
 
-        <audio id="remoteAudio" autoplay></audio>
-        
-        <div class="mt-8 pt-6 border-t border-slate-700">
-            <p class="text-[10px] text-slate-500">مرحباً مروان هاني النجار</p>
-            <p class="text-[9px] text-slate-600 mt-1">تأكد من استخدام HTTPS لتفعيل الميكروفون</p>
+        <!-- Footer -->
+        <div class="mt-10 pt-6 border-t border-zinc-900 text-center">
+            <p class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">تطوير مروان هاني النجار</p>
         </div>
     </div>
 
+    <!-- Remote Audio -->
+    <audio id="remoteAudio" autoplay></audio>
+
     <script>
+        // إعدادات السيرفرات العالمية لضمان العمل من أي مكان
+        const ICE_SERVERS = {
+            config: {
+                'iceServers': [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun.services.mozilla.com' }
+                ]
+            }
+        };
+
         let peer = null;
         let localStream = null;
-        let currentCall = null;
+        let isMuted = false;
 
-        const mainMenu = document.getElementById('mainMenu');
-        const createSection = document.getElementById('createSection');
-        const joinSection = document.getElementById('joinSection');
-        const activeCallSection = document.getElementById('activeCallSection');
-        
-        const generatedRoomIdText = document.getElementById('generatedRoomId');
-        const targetRoomIdInput = document.getElementById('targetRoomId');
-        const statusIndicator = document.getElementById('statusIndicator');
-        const remoteAudio = document.getElementById('remoteAudio');
+        const roomInput = document.getElementById('roomInput');
+        const connectBtn = document.getElementById('connectBtn');
+        const setupView = document.getElementById('setupView');
+        const callView = document.getElementById('callView');
+        const statusText = document.getElementById('statusText');
+        const statusBall = document.getElementById('statusBall');
+        const mainIcon = document.getElementById('mainIcon');
 
-        // دالة مساعدة لطلب الميكروفون
-        async function getMedia() {
+        lucide.createIcons();
+
+        connectBtn.onclick = async () => {
+            const roomName = roomInput.value.trim().toLowerCase();
+            if (!roomName) return alert("من فضلك اكتب اسم الغرفة أولاً");
+
+            statusText.innerText = "جاري طلب الإذن للميكروفون...";
+            
             try {
-                return await navigator.mediaDevices.getUserMedia({ audio: true });
-            } catch (e) {
-                alert("يجب السماح بالوصول للميكروفون لبدء المكالمة.");
-                return null;
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // نقوم بإنشاء Peer بنفس اسم الغرفة
+                // فكرة ذكية: سنحاول الاتصال بالاسم، وإذا فشل لأنه موجود، سنحاول الاتصال به كـ Peer
+                peer = new Peer(roomName, ICE_SERVERS);
+
+                peer.on('open', (id) => {
+                    console.log('Opened as host:', id);
+                    startCallInterface(roomName);
+                });
+
+                peer.on('call', (call) => {
+                    call.answer(localStream);
+                    handleStream(call);
+                });
+
+                peer.on('error', (err) => {
+                    if (err.type === 'unavailable-id') {
+                        // الغرفة موجودة بالفعل، سنقوم بالانضمام إليها
+                        joinExistingRoom(roomName);
+                    } else {
+                        console.error(err);
+                        alert("حدث خطأ في الاتصال بالسيرفر العالمي");
+                        location.reload();
+                    }
+                });
+
+            } catch (err) {
+                alert("لا يمكن بدء المكالمة بدون ميكروفون.");
+                location.reload();
             }
-        }
-
-        // --- خيار إنشاء غرفة ---
-        document.getElementById('showCreateBtn').onclick = async () => {
-            localStream = await getMedia();
-            if (!localStream) return;
-
-            mainMenu.classList.add('hidden');
-            createSection.classList.remove('hidden');
-
-            // إنشاء معرف عشوائي سهل القراءة
-            const randomId = 'room-' + Math.random().toString(36).substr(2, 6);
-            peer = new Peer(randomId);
-
-            peer.on('open', (id) => {
-                generatedRoomIdText.innerText = id;
-            });
-
-            peer.on('call', (call) => {
-                currentCall = call;
-                call.answer(localStream);
-                setupStream(call);
-            });
-            
-            peer.on('error', (err) => {
-                alert("حدث خطأ في الشبكة، يرجى المحاولة مرة أخرى.");
-                location.reload();
-            });
         };
 
-        // --- خيار الانضمام لغرفة ---
-        document.getElementById('showJoinBtn').onclick = () => {
-            mainMenu.classList.add('hidden');
-            joinSection.classList.remove('hidden');
-        };
-
-        document.getElementById('startJoinBtn').onclick = async () => {
-            const targetId = targetRoomIdInput.value.trim();
-            if (!targetId) return alert("من فضلك أدخل المعرف (ID)");
-
-            localStream = await getMedia();
-            if (!localStream) return;
-
-            peer = new Peer(); // معرف عشوائي للمنضم
-            
+        function joinExistingRoom(roomName) {
+            // ننشئ Peer بهوية عشوائية لنقوم بالاتصال بصاحب الغرفة
+            peer = new Peer(ICE_SERVERS);
             peer.on('open', () => {
-                const call = peer.call(targetId, localStream);
-                currentCall = call;
-                setupStream(call);
-            });
-
-            peer.on('error', (err) => {
-                alert("لم يتم العثور على الغرفة أو المعرف خطأ.");
-            });
-        };
-
-        function setupStream(call) {
-            call.on('stream', (remoteStream) => {
-                remoteAudio.srcObject = remoteStream;
-                
-                // تحديث الواجهة لحالة الاتصال
-                createSection.classList.add('hidden');
-                joinSection.classList.add('hidden');
-                activeCallSection.classList.remove('hidden');
-                
-                statusIndicator.classList.add('border-green-500', 'pulse-green');
-                statusIndicator.innerText = "LIVE";
-            });
-
-            call.on('close', () => {
-                alert("انتهت المكالمة");
-                location.reload();
+                const call = peer.call(roomName, localStream);
+                handleStream(call);
+                startCallInterface(roomName);
             });
         }
 
-        document.getElementById('hangupBtn').onclick = () => {
-            location.reload();
+        function handleStream(call) {
+            call.on('stream', (remoteStream) => {
+                document.getElementById('remoteAudio').srcObject = remoteStream;
+                statusText.innerText = "أنت الآن على الهواء مباشرة";
+                statusBall.classList.add('border-green-500', 'pulse');
+                mainIcon.classList.add('text-green-500');
+            });
+        }
+
+        function startCallInterface(name) {
+            setupView.classList.add('hidden');
+            callView.classList.remove('hidden');
+            document.getElementById('activeRoomLabel').innerText = name;
+            statusText.innerText = "في انتظار الطرف الآخر...";
+        }
+
+        document.getElementById('hangupBtn').onclick = () => location.reload();
+
+        document.getElementById('muteBtn').onclick = () => {
+            isMuted = !isMuted;
+            localStream.getAudioTracks()[0].enabled = !isMuted;
+            document.getElementById('muteBtn').classList.toggle('bg-red-600', isMuted);
+            document.getElementById('muteIcon').setAttribute('data-lucide', isMuted ? 'mic-off' : 'mic');
+            lucide.createIcons();
         };
 
     </script>
 </body>
 </html>
-
